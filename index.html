@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#176b4d"><title>Poultry Billing</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7f5;color:#17221c}
+header{background:#176b4d;color:#fff;padding:16px;position:sticky;top:0;z-index:2}header h2{margin:0 0 4px}
+nav{display:flex;gap:7px;overflow:auto;background:#fff;padding:9px;position:sticky;top:65px;z-index:2}
+button{border:0;border-radius:9px;padding:10px 13px;background:#176b4d;color:white;font-weight:600;cursor:pointer}
+nav button{background:#e7efe9;color:#176b4d;white-space:nowrap}.active{background:#176b4d!important;color:#fff!important}
+main{max-width:1050px;margin:auto;padding:15px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.card{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px #00000010}.big{font-size:26px;font-weight:700;margin-top:6px}
+input,select{width:100%;padding:11px;border:1px solid #ccd7d0;border-radius:8px;margin:5px 0 12px;background:#fff}
+label{font-size:13px;font-weight:700}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+table{width:100%;border-collapse:collapse;background:#fff}.tablewrap{overflow:auto}.hide{display:none}th,td{padding:9px;border-bottom:1px solid #e4e9e5;text-align:left;font-size:14px}
+.small{font-size:12px;color:#647169}.danger{background:#b83232}.actions{display:flex;gap:8px;flex-wrap:wrap}
+</style><link rel="manifest" href="manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"></head>
+<body>
+<header><h2>🐔 Poultry Billing</h2><div id="subtitle">Poultry business management</div></header>
+<nav>
+<button class="active" onclick="show('dash',this)">Dashboard</button>
+<button onclick="show('purchase',this)">Purchase</button>
+<button onclick="show('sale',this)">Sale</button>
+<button onclick="show('parties',this)">Parties</button>
+<button onclick="show('stock',this)">Stock</button>
+<button onclick="show('settings',this)">Settings</button>
+</nav>
+<main>
+<section id="dash">
+<div class="grid">
+<div class="card">Today's Purchase<div class="big" id="dp">₹0</div></div>
+<div class="card">Today's Sale<div class="big" id="ds">₹0</div></div>
+<div class="card">Bird Stock<div class="big" id="db">0</div></div>
+<div class="card">Stock Weight<div class="big" id="dw">0 kg</div></div>
+</div><br>
+<div class="card"><h3>Recent Entries</h3><div id="recent"></div></div>
+</section>
+
+<section id="purchase" class="hide">
+<div class="card"><h3>Purchase Entry</h3>
+<div class="row"><div><label>Date</label><input id="pdate" type="date"></div><div><label>Supplier</label><input id="psup" placeholder="Supplier name"></div>
+<div><label>Birds</label><input id="pbirds" type="number" min="0"></div><div><label>Weight (kg)</label><input id="pweight" type="number" step="0.01"></div>
+<div><label>Rate ₹/kg</label><input id="prate" type="number" step="0.01"></div></div>
+<button onclick="addPurchase()">Save Purchase</button></div></section>
+
+<section id="sale" class="hide">
+<div class="card"><h3>Sale Entry</h3>
+<div class="row"><div><label>Date</label><input id="sdate" type="date"></div><div><label>Party</label><input id="sparty" placeholder="Party name"></div>
+<div><label>Birds</label><input id="sbirds" type="number" min="0"></div><div><label>Weight (kg)</label><input id="sweight" type="number" step="0.01"></div>
+<div><label>Rate ₹/kg</label><input id="srate" type="number" step="0.01"></div></div>
+<button onclick="addSale()">Save Sale</button></div></section>
+
+<section id="parties" class="hide"><div class="card"><h3>Party-wise Sales</h3><div class="tablewrap"><table><thead><tr><th>Party</th><th>Birds</th><th>Weight</th><th>Amount</th></tr></thead><tbody id="partyTable"></tbody></table></div></div></section>
+
+<section id="stock" class="hide"><div class="card"><h3>Stock</h3><div class="grid">
+<div>Birds<div class="big" id="sb">0</div></div><div>Weight<div class="big" id="sw">0 kg</div></div></div><p class="small">Stock = total purchase − total sale.</p></div></section>
+
+<section id="settings" class="hide"><div class="card"><h3>Settings</h3>
+<label>Language</label><select id="lang" onchange="setLang()"><option value="en">English</option><option value="hi">हिन्दी</option></select>
+<hr><div class="actions"><button onclick="exportData()">Backup Data</button><button class="danger" onclick="clearData()">Delete All Data</button></div></div></section>
+</main>
+<script>
+const today=()=>new Date().toISOString().slice(0,10);
+let data=JSON.parse(localStorage.getItem('poultryData')||'{"purchases":[],"sales":[]}');
+document.querySelectorAll('input[type=date]').forEach(x=>x.value=today());
+function save(){localStorage.setItem('poultryData',JSON.stringify(data));render()}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function total(a){return a.reduce((x,r)=>x+Number(r.amount||0),0)}
+function addPurchase(){
+ let birds=+pbirds.value||0,w=+pweight.value||0,r=+prate.value||0;
+ if(!psup.value||(!birds&&!w))return alert('Supplier and quantity required');
+ data.purchases.push({date:pdate.value||today(),supplier:psup.value,birds,weight:w,rate:r,amount:w*r});save();
+}
+function addSale(){
+ let birds=+sbirds.value||0,w=+sweight.value||0,r=+srate.value||0;
+ if(!sparty.value||(!birds&&!w))return alert('Party and quantity required');
+ data.sales.push({date:sdate.value||today(),party:sparty.value,birds,weight:w,rate:r,amount:w*r});save();
+}
+function show(id,btn){document.querySelectorAll('main section').forEach(s=>s.classList.add('hide'));document.getElementById(id).classList.remove('hide');document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render()}
+function render(){
+ let d=today(),p=data.purchases.filter(x=>x.date===d),s=data.sales.filter(x=>x.date===d);
+ dp.textContent=money(total(p));ds.textContent=money(total(s));
+ let pb=data.purchases.reduce((x,r)=>x+r.birds,0),sbv=data.sales.reduce((x,r)=>x+r.birds,0);
+ let pw=data.purchases.reduce((x,r)=>x+r.weight,0),swv=data.sales.reduce((x,r)=>x+r.weight,0);
+ db.textContent=(pb-sbv).toLocaleString('en-IN');dw.textContent=(pw-swv).toFixed(2)+' kg';sb.textContent=db.textContent;sw.textContent=dw.textContent;
+ let parties={};data.sales.forEach(x=>{let k=x.party;parties[k]??={birds:0,weight:0,amount:0};parties[k].birds+=x.birds;parties[k].weight+=x.weight;parties[k].amount+=x.amount});
+ partyTable.innerHTML=Object.entries(parties).map(([k,v])=>`<tr><td>${esc(k)}</td><td>${v.birds}</td><td>${v.weight.toFixed(2)} kg</td><td>${money(v.amount)}</td></tr>`).join('')||'<tr><td colspan=4>No sales yet</td></tr>';
+ let all=[...data.purchases.map(x=>({...x,type:'Purchase',name:x.supplier})),...data.sales.map(x=>({...x,type:'Sale',name:x.party}))].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+ recent.innerHTML=all.map(x=>`<p><b>${x.type}</b> · ${esc(x.name)} · ${x.birds} birds · ${x.weight} kg · ${money(x.amount)} <span class=small>${x.date}</span></p>`).join('')||'<p class=small>No entries yet.</p>';
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function exportData(){let b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='poultry-backup.json';a.click()}
+function clearData(){if(confirm('Delete all poultry data?')){data={purchases:[],sales:[]};save()}}
+function setLang(){alert(lang.value==='hi'?'Hindi mode selected. Full Hindi labels can be added in the next version.':'English mode selected.')}
+render();
+</script><script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>
